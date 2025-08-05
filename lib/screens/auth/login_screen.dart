@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'register_screen.dart';
 import '../../widgets/auth/placeholder_widgets.dart';
+import '../../constants/assets.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -65,11 +66,15 @@ class _LoginScreenState extends State<LoginScreen> {
           } else {
             // Mobile layout
             return Container(
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 image: DecorationImage(
-                  image: AssetImage('assets/images/poster-login.png'),
+                  image: AssetImage(Assets.posterLogin),
                   fit: BoxFit.cover,
                   alignment: Alignment.center,
+                  onError: (exception, stackTrace) {
+                    // Fallback jika gambar tidak ditemukan
+                    debugPrint('Error loading background image: $exception');
+                  },
                 ),
               ),
               child: Container(
@@ -233,8 +238,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 24),
 
                       // Register Link
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      Column(
                         children: [
                           Text(
                             'Belum punya akun?',
@@ -399,14 +403,17 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Widget _buildBackgroundImage() {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         image: DecorationImage(
-          image: AssetImage('assets/images/poster-login.png'),
+          image: AssetImage(Assets.posterLogin),
           fit: BoxFit.cover,
           alignment: Alignment.topCenter,
+          onError: (exception, stackTrace) {
+            // Fallback jika gambar tidak ditemukan
+            debugPrint('Error loading background image: $exception');
+          },
         ),
       ),
-      child: PlaceholderWidgets.buildBackgroundPlaceholder(),
     );
   }
 

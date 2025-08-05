@@ -10,11 +10,15 @@ Selamat datang! Aplikasi Klinik SerbaBisa telah berhasil dibuat dengan halaman a
 lib/
 ├── main.dart                    # Entry point aplikasi
 ├── screens/
-│   └── auth/                    # Halaman autentikasi
-│       ├── login_screen.dart    # Halaman login
-│       ├── register_screen.dart # Halaman register
-│       ├── auth_routes.dart     # Routing autentikasi
-│       └── README.md           # Dokumentasi auth
+│   ├── auth/                    # Halaman autentikasi user
+│   │   ├── login_screen.dart    # Halaman login user
+│   │   ├── register_screen.dart # Halaman register user
+│   │   ├── auth_routes.dart     # Routing autentikasi user
+│   │   └── README.md           # Dokumentasi auth user
+│   └── admin/                   # Halaman admin
+│       ├── admin_login_screen.dart # Halaman login admin
+│       ├── admin_routes.dart    # Routing admin
+│       └── README.md           # Dokumentasi admin
 ├── widgets/
 │   └── auth/
 │       ├── auth_widgets.dart    # Widget components
@@ -34,7 +38,7 @@ assets/
 
 ### ✅ Fitur yang Telah Diimplementasi
 
-#### 🎨 **Halaman Login**
+#### 🎨 **Halaman Login User**
 
 - Form login dengan email dan password
 - Validasi real-time
@@ -42,9 +46,9 @@ assets/
 - Loading state saat submit
 - Responsive design (mobile & desktop)
 - Background image dengan overlay gradient
-- Navigasi ke halaman register
+- Navigasi ke halaman register dan admin login
 
-#### 📝 **Halaman Register**
+#### 📝 **Halaman Register User**
 
 - Form register lengkap (email, nama, umur, kelamin, HP, alamat, password)
 - Validasi real-time untuk semua field
@@ -55,6 +59,17 @@ assets/
 - Background image dengan overlay gradient
 - Navigasi ke halaman login
 
+#### 🔐 **Halaman Login Admin**
+
+- Form login khusus administrator
+- Icon admin panel yang khas
+- Info box khusus admin
+- Validasi email dan password
+- Loading state saat submit
+- Responsive design (mobile & desktop)
+- Background image dengan overlay gradient
+- Navigasi ke halaman user login
+
 #### 🎯 **Fitur Tambahan**
 
 - **Placeholder Widgets**: Menangani kasus ketika gambar tidak tersedia
@@ -62,6 +77,8 @@ assets/
 - **Form Validation**: Validasi yang ketat untuk semua input
 - **Responsive Design**: Tampilan optimal untuk mobile dan desktop
 - **Error Handling**: Penanganan error yang baik
+- **Navigation System**: Navigasi antar halaman user dan admin
+- **Role-based Access**: Interface yang berbeda untuk user dan admin
 
 ## 🛠️ Cara Menjalankan Aplikasi
 
@@ -146,6 +163,29 @@ static Widget buildTextField({...}) {
 }
 ```
 
+## 🔐 Menggunakan Fitur Admin
+
+### **Akses Halaman Admin**
+
+1. **Buka aplikasi** - Default akan ke halaman user login
+2. **Klik "Login sebagai Admin?"** - Link biru di bagian bawah form
+3. **Isi form admin** - Email dan password administrator
+4. **Klik "Login Admin"** - Proses login dengan loading state
+
+### **Navigasi Antar Halaman**
+
+- **User Login** → **Admin Login**: Klik "Login sebagai Admin?"
+- **Admin Login** → **User Login**: Klik "Login sebagai User?"
+- **User Login** → **User Register**: Klik "Daftar Disini"
+
+### **Fitur Khusus Admin**
+
+- **Icon Admin**: Menggunakan `Icons.admin_panel_settings`
+- **Info Box**: Pemberitahuan khusus untuk administrator
+- **Validasi Khusus**: Email dan password untuk admin
+- **Loading State**: Indikator loading saat proses login
+- **Success Feedback**: Snackbar dengan pesan sukses
+
 ## 📱 Responsive Design
 
 ### **Mobile Layout (< 768px)**
@@ -208,6 +248,8 @@ Level: **Sangat Lemah** → **Lemah** → **Sedang** → **Kuat**
 ## 📚 Dokumentasi Lebih Lanjut
 
 - **Auth Screens**: `lib/screens/auth/README.md`
+- **Admin Screens**: `lib/screens/admin/README.md`
+- **Admin Features**: `ADMIN_FEATURES.md`
 - **Assets**: `assets/images/README.md`
 - **Main README**: `README.md`
 
@@ -215,13 +257,29 @@ Level: **Sangat Lemah** → **Lemah** → **Sedang** → **Kuat**
 
 Setelah setup ini, Anda bisa melanjutkan dengan:
 
+### **Untuk User Features**
+
 1. **Integrasi Backend API**
 2. **State Management** (Provider/Bloc)
 3. **Local Storage** untuk session
 4. **Push Notifications**
 5. **Offline Support**
-6. **Unit Tests**
-7. **Integration Tests**
+
+### **Untuk Admin Features**
+
+1. **Admin Dashboard** - Panel utama setelah login
+2. **User Management** - Kelola data user
+3. **Appointment Management** - Kelola janji temu
+4. **Reports & Analytics** - Laporan dan statistik
+5. **Settings Panel** - Konfigurasi sistem
+
+### **Technical Improvements**
+
+1. **Unit Tests**
+2. **Integration Tests**
+3. **Biometric Authentication**
+4. **Two-Factor Authentication**
+5. **Session Management**
 
 ## 📞 Support
 

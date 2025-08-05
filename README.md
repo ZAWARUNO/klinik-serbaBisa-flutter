@@ -5,14 +5,18 @@ Aplikasi Flutter untuk sistem manajemen klinik dengan halaman autentikasi yang s
 ## 🚀 Fitur Utama
 
 ### Halaman Autentikasi
-- ✅ **Login Screen** - Form login dengan validasi real-time
-- ✅ **Register Screen** - Form registrasi lengkap dengan password strength indicator
+
+- ✅ **User Login Screen** - Form login user dengan validasi real-time
+- ✅ **User Register Screen** - Form registrasi lengkap dengan password strength indicator
+- ✅ **Admin Login Screen** - Form login khusus administrator
 - ✅ **Responsive Design** - Tampilan yang optimal untuk mobile dan desktop
 - ✅ **Modern UI/UX** - Desain yang elegan dengan gradient dan shadow effects
 - ✅ **Form Validation** - Validasi yang ketat untuk semua input
 - ✅ **Loading States** - Indikator loading saat proses autentikasi
+- ✅ **Navigation** - Navigasi antar halaman user dan admin
 
 ### Desain & Tema
+
 - 🎨 **Color Scheme** - Tema hijau emerald yang profesional
 - 📱 **Mobile-First** - Optimized untuk perangkat mobile
 - 🖥️ **Desktop Support** - Layout split-screen untuk desktop
@@ -25,11 +29,15 @@ Aplikasi Flutter untuk sistem manajemen klinik dengan halaman autentikasi yang s
 lib/
 ├── main.dart                    # Entry point aplikasi
 ├── screens/
-│   └── auth/                    # Halaman autentikasi
-│       ├── login_screen.dart    # Halaman login
-│       ├── register_screen.dart # Halaman register
-│       ├── auth_routes.dart     # Routing autentikasi
-│       └── README.md           # Dokumentasi auth
+│   ├── auth/                    # Halaman autentikasi user
+│   │   ├── login_screen.dart    # Halaman login user
+│   │   ├── register_screen.dart # Halaman register user
+│   │   ├── auth_routes.dart     # Routing autentikasi user
+│   │   └── README.md           # Dokumentasi auth user
+│   └── admin/                   # Halaman admin
+│       ├── admin_login_screen.dart # Halaman login admin
+│       ├── admin_routes.dart    # Routing admin
+│       └── README.md           # Dokumentasi admin
 ├── widgets/
 │   └── auth/
 │       └── auth_widgets.dart    # Widget components
@@ -51,6 +59,7 @@ assets/
 ## 🛠️ Setup & Instalasi
 
 ### Prerequisites
+
 - Flutter SDK (versi 3.8.1 atau lebih baru)
 - Dart SDK
 - Android Studio / VS Code
@@ -59,17 +68,20 @@ assets/
 ### Langkah Instalasi
 
 1. **Clone repository**
+
    ```bash
    git clone <repository-url>
    cd klinik_serbabisa
    ```
 
 2. **Install dependencies**
+
    ```bash
    flutter pub get
    ```
 
 3. **Siapkan assets**
+
    - Buat folder `assets/images/`
    - Tambahkan gambar yang diperlukan:
      - `poster-login.png` (1920x1080px)
@@ -84,6 +96,7 @@ assets/
 ## 🎨 Desain System
 
 ### Color Palette
+
 - **Primary**: `#10B981` (Emerald)
 - **Primary Dark**: `#059669`
 - **Accent**: `#34D399`
@@ -91,6 +104,7 @@ assets/
 - **Mobile Link**: `#FCD34D` (Yellow)
 
 ### Typography
+
 - **Font Family**: Poppins
 - **Title**: 24px, Bold
 - **Subtitle**: 14px, Regular
@@ -98,6 +112,7 @@ assets/
 - **Button**: 16px, SemiBold
 
 ### Spacing
+
 - **Border Radius**: 12px (form), 25px (button), 32px (logo)
 - **Padding**: 24px (form), 16px (field), 12px (vertical)
 - **Margin**: 16px, 24px, 32px
@@ -105,12 +120,14 @@ assets/
 ## 📱 Responsive Design
 
 ### Mobile Layout (< 768px)
+
 - Background image dengan gradient overlay
 - Logo klinik di bagian atas
 - Form dengan background semi-transparan
 - Warna teks putih untuk kontras
 
 ### Desktop Layout (≥ 768px)
+
 - Split screen: gambar di kiri, form di kanan
 - Background putih untuk form
 - Warna teks abu-abu untuk readability
@@ -118,10 +135,12 @@ assets/
 ## ✅ Validasi Form
 
 ### Login Form
+
 - **Email**: Format email valid
 - **Password**: Minimal 8 karakter
 
 ### Register Form
+
 - **Email**: Format email valid
 - **Nama**: Minimal 2 karakter
 - **Umur**: 1-120 tahun
@@ -130,6 +149,7 @@ assets/
 - **Password**: Minimal 8 karakter dengan strength indicator
 
 ### Password Strength
+
 1. Minimal 8 karakter
 2. Mengandung huruf kecil
 3. Mengandung huruf besar
@@ -141,14 +161,18 @@ Level: **Sangat Lemah** → **Lemah** → **Sedang** → **Kuat**
 ## 🔧 Customization
 
 ### Mengubah Tema
+
 Edit file `lib/theme/auth_theme.dart`:
+
 ```dart
 static const Color primaryColor = Color(0xFF10B981);
 static const Color primaryDarkColor = Color(0xFF059669);
 ```
 
 ### Mengubah Validasi
+
 Edit file `lib/utils/auth_validators.dart`:
+
 ```dart
 static String? validateEmail(String? value) {
   // Custom validation logic
@@ -156,7 +180,9 @@ static String? validateEmail(String? value) {
 ```
 
 ### Mengubah Widget Components
+
 Edit file `lib/widgets/auth/auth_widgets.dart`:
+
 ```dart
 static Widget buildTextField({...}) {
   // Custom widget logic
@@ -166,16 +192,19 @@ static Widget buildTextField({...}) {
 ## 🚀 Deployment
 
 ### Android
+
 ```bash
 flutter build apk --release
 ```
 
 ### iOS
+
 ```bash
 flutter build ios --release
 ```
 
 ### Web
+
 ```bash
 flutter build web --release
 ```

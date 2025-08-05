@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/auth_theme.dart';
+import '../../constants/assets.dart';
 
 class PlaceholderWidgets {
   // Placeholder untuk background image
@@ -11,10 +12,17 @@ class PlaceholderWidgets {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Image.asset(
-              'assets/images/logo_transparant_klinik.png',
+              Assets.logoTransparant,
               width: 200,
               height: 150,
               color: Colors.white.withOpacity(0.8),
+              errorBuilder: (context, error, stackTrace) {
+                return Icon(
+                  Icons.medical_services,
+                  size: 80,
+                  color: Colors.white.withOpacity(0.8),
+                );
+              },
             ),
             const SizedBox(height: 16),
             Text(
@@ -41,10 +49,25 @@ class PlaceholderWidgets {
   // Placeholder untuk logo
   static Widget buildLogoPlaceholder({double size = 64}) {
     return Image.asset(
-      'assets/images/logo_favicon.png',
+      Assets.logoFavicon,
       width: size,
       height: size,
       color: Colors.white,
+      errorBuilder: (context, error, stackTrace) {
+        return Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: AuthTheme.primaryColor,
+            borderRadius: BorderRadius.circular(size * 0.2),
+          ),
+          child: Icon(
+            Icons.medical_services,
+            size: size * 0.6,
+            color: Colors.white,
+          ),
+        );
+      },
     );
   }
 

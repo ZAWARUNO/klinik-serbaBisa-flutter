@@ -5,6 +5,7 @@ import 'register_screen.dart';
 class AuthRoutes {
   static const String login = '/login';
   static const String register = '/register';
+  static const String adminLogin = '/admin/login';
 
   static Map<String, WidgetBuilder> getRoutes() {
     return {
@@ -19,6 +20,8 @@ class AuthRoutes {
         return MaterialPageRoute(builder: (context) => const LoginScreen());
       case register:
         return MaterialPageRoute(builder: (context) => const RegisterScreen());
+      case adminLogin:
+        return MaterialPageRoute(builder: (context) => const LoginScreen());
       default:
         return MaterialPageRoute(builder: (context) => const LoginScreen());
     }
