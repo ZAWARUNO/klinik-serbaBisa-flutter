@@ -105,7 +105,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       vsync: this,
     );
 
-
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
@@ -130,32 +129,34 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFFE0F7FA), // cyan-50
-              Color(0xFFE3F2FD), // blue-50
+      body: SafeArea(
+        child: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFFE0F7FA), // cyan-50
+                Color(0xFFE3F2FD), // blue-50
+              ],
+            ),
+          ),
+          child: CustomScrollView(
+            slivers: [
+              _buildAppBar(),
+              SliverToBoxAdapter(
+                child: Column(
+                  children: [
+                    _buildHeroSection(),
+                    _buildAboutSection(),
+                    _buildServicesSection(),
+                    _buildDoctorsSection(),
+                    _buildFooter(),
+                  ],
+                ),
+              ),
             ],
           ),
-        ),
-        child: CustomScrollView(
-          slivers: [
-            _buildAppBar(),
-            SliverToBoxAdapter(
-              child: Column(
-                children: [
-                  _buildHeroSection(),
-                  _buildAboutSection(),
-                  _buildServicesSection(),
-                  _buildDoctorsSection(),
-                  _buildFooter(),
-                ],
-              ),
-            ),
-          ],
         ),
       ),
     );
@@ -163,66 +164,72 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   Widget _buildAppBar() {
     return SliverAppBar(
-      expandedHeight: 30,
-      toolbarHeight: 30,
+      expandedHeight: 60,
+      toolbarHeight: 60,
       floating: true,
       pinned: true,
       backgroundColor: Colors.white,
       elevation: 2,
-      flexibleSpace: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Row(
-          children: [
-            // Logo
-            Container(
-              height: 40,
-              width: 120,
-              child: Image.asset(
-                'assets/images/logo_transparant_klinik.png',
-                fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    width: 120,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: AuthTheme.primaryColor,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Center(
-                      child: Text(
-                        'Klinik SerbaBisa',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
+      automaticallyImplyLeading: false,
+      systemOverlayStyle: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+      ),
+      flexibleSpace: SafeArea(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              // Logo
+              Container(
+                height: 40,
+                width: 120,
+                child: Image.asset(
+                  'assets/images/logo_transparant_klinik.png',
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      width: 120,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: AuthTheme.primaryColor,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Center(
+                        child: Text(
+                          'Klinik SerbaBisa',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
                         ),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
-            ),
-            const Spacer(),
-            // Menu buttons
-            Row(
-              children: [
-
-                GestureDetector(
-                  onTap: () {
-                    Navigator.pushNamed(context, AuthRoutes.login);
-                  },
-                  child: _buildMenuButton('Pasien', Colors.cyan, () {}),
-                ),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.pushNamed(context, AdminRoutes.adminLogin);
-                  },
-                  child: _buildMenuButton('Admin', Colors.green, () {}),
-                ),
-              ],
-            ),
-          ],
+              const Spacer(),
+              // Menu buttons
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pushNamed(context, AuthRoutes.login);
+                    },
+                    child: _buildMenuButton('Pasien', Colors.cyan, () {}),
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pushNamed(context, AdminRoutes.adminLogin);
+                    },
+                    child: _buildMenuButton('Admin', Colors.green, () {}),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -242,7 +249,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           fontWeight: FontWeight.w600,
           fontSize: 14,
         ),
-
       ),
     );
   }
@@ -257,7 +263,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           height: 350,
           decoration: const BoxDecoration(
             image: DecorationImage(
-              image: AssetImage('assets/images/poster-login.png'),
+              image: AssetImage('assets/images/banner.png'),
               fit: BoxFit.cover,
             ),
           ),
@@ -375,7 +381,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     topRight: Radius.circular(16),
                   ),
                   image: DecorationImage(
-                    image: AssetImage('assets/images/poster-login.png'),
+                    image: AssetImage('assets/images/layanan-foto.png'),
                     fit: BoxFit.cover,
                   ),
                 ),
@@ -645,7 +651,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             child: Column(
               children: [
                 Container(
-
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 8,
@@ -745,7 +750,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   children: [
                     Expanded(
                       child: ElevatedButton(
-
                         onPressed: () {
                           Navigator.pushNamed(context, AuthRoutes.register);
                         },
@@ -768,7 +772,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     const SizedBox(width: 12),
                     Expanded(
                       child: OutlinedButton(
-
                         onPressed: () {
                           Navigator.pushNamed(context, AuthRoutes.login);
                         },
@@ -781,7 +784,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           ),
                         ),
                         child: const Text(
-
                           'Login Pasien',
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
@@ -837,7 +839,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-
                 colors: [doctor['color'].withOpacity(0.8), doctor['color']],
               ),
               borderRadius: const BorderRadius.vertical(
@@ -933,7 +934,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 ),
                 const SizedBox(height: 12),
                 Row(
-
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     _buildScheduleDay(
@@ -1032,8 +1032,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               children: [
                 Container(
                   child: Image.asset(
-
-                    'assets/images/logo_transparant_klinik.png',
+                    'assets/images/logo.png', // Ganti dengan path logo Anda
                     fit: BoxFit.contain,
                     errorBuilder: (context, error, stackTrace) {
                       return Container(
@@ -1079,7 +1078,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             const SizedBox(height: 16),
             const Text(
               'Klinik SerbaBisa hadir menyediakan berbagai layanan kesehatan berkualitas, lengkap, dan terstandarisasi mulai dari layanan umum, tumbuh kembang anak, hingga pengobatan psikologi.',
-
               style: TextStyle(color: Colors.white, fontSize: 14, height: 1.5),
               textAlign: TextAlign.center,
             ),
@@ -1088,7 +1086,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               children: [
                 Expanded(
                   child: ElevatedButton(
-           onPressed: () {
+                    onPressed: () {
                       Navigator.pushNamed(context, AuthRoutes.register);
                     },
                     style: ElevatedButton.styleFrom(
@@ -1110,7 +1108,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton(
-
                     onPressed: () {
                       Navigator.pushNamed(context, AdminRoutes.adminLogin);
                     },
@@ -1137,7 +1134,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             const SizedBox(height: 16),
             const Text(
               'Copyright © 2025 Klinik SerbaBisa',
-
               style: TextStyle(color: Colors.white70, fontSize: 12),
             ),
           ],
