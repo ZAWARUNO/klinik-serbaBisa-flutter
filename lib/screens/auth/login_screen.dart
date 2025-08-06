@@ -43,8 +43,10 @@ class _LoginScreenState extends State<LoginScreen> {
         _isLoading = false;
       });
 
-      // Navigate to home atau dashboard
-      // Navigator.pushReplacementNamed(context, '/home');
+      // Navigate to patient dashboard
+      debugPrint('Attempting to navigate to patient dashboard...');
+      Navigator.pushReplacementNamed(context, '/patient/dashboard');
+      debugPrint('Navigation completed');
     }
   }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'screens/auth/auth_routes.dart';
 import 'screens/admin/admin_routes.dart';
+import 'screens/patient/patient_routes.dart';
 import 'screens/auth/login_screen.dart';
 import 'theme/auth_theme.dart';
 
@@ -14,6 +15,14 @@ class KlinikSerbaBisaApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Debug: Print all routes
+    final allRoutes = {
+      ...AuthRoutes.getRoutes(),
+      ...AdminRoutes.getRoutes(),
+      ...PatientRoutes.getRoutes(),
+    };
+    debugPrint('Available routes: ${allRoutes.keys.join(', ')}');
+
     return MaterialApp(
       title: 'Klinik SerbaBisa',
       theme: ThemeData(
@@ -70,6 +79,7 @@ class KlinikSerbaBisaApp extends StatelessWidget {
         '/': (context) => const HomePage(),
         ...AuthRoutes.getRoutes(),
         ...AdminRoutes.getRoutes(),
+        ...PatientRoutes.getRoutes(),
       },
       onGenerateRoute: (settings) {
         final authRoute = AuthRoutes.onGenerateRoute(settings);
@@ -77,6 +87,9 @@ class KlinikSerbaBisaApp extends StatelessWidget {
 
         final adminRoute = AdminRoutes.onGenerateRoute(settings);
         if (adminRoute != null) return adminRoute;
+
+        final patientRoute = PatientRoutes.onGenerateRoute(settings);
+        if (patientRoute != null) return patientRoute;
 
         return MaterialPageRoute(builder: (context) => const HomePage());
       },
@@ -104,7 +117,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       duration: const Duration(milliseconds: 1500),
       vsync: this,
     );
-
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
@@ -206,7 +218,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             // Menu buttons
             Row(
               children: [
-
                 GestureDetector(
                   onTap: () {
                     Navigator.pushNamed(context, AuthRoutes.login);
@@ -242,7 +253,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           fontWeight: FontWeight.w600,
           fontSize: 14,
         ),
-
       ),
     );
   }
@@ -645,7 +655,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             child: Column(
               children: [
                 Container(
-
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 8,
@@ -745,7 +754,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   children: [
                     Expanded(
                       child: ElevatedButton(
-
                         onPressed: () {
                           Navigator.pushNamed(context, AuthRoutes.register);
                         },
@@ -768,7 +776,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     const SizedBox(width: 12),
                     Expanded(
                       child: OutlinedButton(
-
                         onPressed: () {
                           Navigator.pushNamed(context, AuthRoutes.login);
                         },
@@ -781,7 +788,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           ),
                         ),
                         child: const Text(
-
                           'Login Pasien',
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
@@ -837,7 +843,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-
                 colors: [doctor['color'].withOpacity(0.8), doctor['color']],
               ),
               borderRadius: const BorderRadius.vertical(
@@ -933,7 +938,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 ),
                 const SizedBox(height: 12),
                 Row(
-
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     _buildScheduleDay(
@@ -1032,7 +1036,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               children: [
                 Container(
                   child: Image.asset(
-
                     'assets/images/logo_transparant_klinik.png',
                     fit: BoxFit.contain,
                     errorBuilder: (context, error, stackTrace) {
@@ -1088,7 +1091,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               children: [
                 Expanded(
                   child: ElevatedButton(
-           onPressed: () {
+                    onPressed: () {
                       Navigator.pushNamed(context, AuthRoutes.register);
                     },
                     style: ElevatedButton.styleFrom(
@@ -1110,7 +1113,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton(
-
                     onPressed: () {
                       Navigator.pushNamed(context, AdminRoutes.adminLogin);
                     },
