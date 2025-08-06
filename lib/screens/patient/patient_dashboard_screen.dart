@@ -17,7 +17,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen>
   late Animation<Offset> _slideAnimation;
 
   int _selectedIndex = 0;
-  bool _isLoading = false;
+  final bool _isLoading = false;
 
   // Sample data for dashboard
   final List<Map<String, dynamic>> _appointments = [
@@ -107,7 +107,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen>
       elevation: 2,
       title: Row(
         children: [
-          Container(
+          SizedBox(
             height: 40,
             width: 120,
             child: Image.asset(

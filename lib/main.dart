@@ -89,7 +89,7 @@ class KlinikSerbaBisaApp extends StatelessWidget {
         if (adminRoute != null) return adminRoute;
 
         final patientRoute = PatientRoutes.onGenerateRoute(settings);
-        if (patientRoute != null) return patientRoute;
+        return patientRoute;
 
         return MaterialPageRoute(builder: (context) => const HomePage());
       },
@@ -194,7 +194,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           child: Row(
             children: [
               // Logo
-              Container(
+              SizedBox(
                 height: 40,
                 width: 120,
                 child: Image.asset(
@@ -218,47 +218,24 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           ),
                         ),
                       ),
-
-                    ),
-                  );
-                },
-              ),
-            ),
-            const Spacer(),
-            // Menu buttons
-            Row(
-              children: [
-                GestureDetector(
-                  onTap: () {
-                    Navigator.pushNamed(context, AuthRoutes.login);
-                  },
-                  child: _buildMenuButton('Pasien', Colors.cyan, () {}),
-                ),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.pushNamed(context, AdminRoutes.adminLogin);
+                    );
                   },
                 ),
               ),
               const Spacer(),
               // Menu buttons
-              Row(
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.pushNamed(context, AuthRoutes.login);
-                    },
-                    child: _buildMenuButton('Pasien', Colors.cyan, () {}),
-                  ),
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.pushNamed(context, AdminRoutes.adminLogin);
-                    },
-                    child: _buildMenuButton('Admin', Colors.green, () {}),
-                  ),
-                ],
+              GestureDetector(
+                onTap: () {
+                  Navigator.pushNamed(context, AuthRoutes.login);
+                },
+                child: _buildMenuButton('Pasien', Colors.cyan),
+              ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () {
+                  Navigator.pushNamed(context, AdminRoutes.adminLogin);
+                },
+                child: _buildMenuButton('Admin', Colors.green),
               ),
             ],
           ),
@@ -267,7 +244,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildMenuButton(String text, Color color, VoidCallback onPressed) {
+  Widget _buildMenuButton(String text, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
@@ -1064,7 +1041,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               children: [
                 Container(
                   child: Image.asset(
-
                     'assets/images/logo.png', // Ganti dengan path logo Anda
 
                     fit: BoxFit.contain,

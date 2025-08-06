@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../lib/constants/assets.dart';
+import 'package:klinik_serbabisa/constants/assets.dart';
 
 void main() {
   print('🔍 Memeriksa ketersediaan asset...\n');
@@ -9,9 +9,9 @@ void main() {
   for (String assetPath in Assets.requiredImages) {
     File assetFile = File(assetPath);
     if (assetFile.existsSync()) {
-      print('✅ ${assetPath} - TERSEDIA');
+      print('✅ $assetPath - TERSEDIA');
     } else {
-      print('❌ ${assetPath} - TIDAK DITEMUKAN');
+      print('❌ $assetPath - TIDAK DITEMUKAN');
     }
   }
 
