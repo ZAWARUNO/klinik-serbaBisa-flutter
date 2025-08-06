@@ -1085,13 +1085,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                               fontSize: 12,
                             ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
                 ),
-                const Spacer(),
                 Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
                       onPressed: () {},
