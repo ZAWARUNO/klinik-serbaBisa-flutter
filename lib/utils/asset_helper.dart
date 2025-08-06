@@ -103,7 +103,7 @@ class AssetHelper {
   /// Validasi apakah asset tersedia
   static Future<bool> isAssetAvailable(String assetPath) async {
     try {
-      await AssetImage(assetPath).resolve(ImageConfiguration.empty);
+      AssetImage(assetPath).resolve(ImageConfiguration.empty);
       return true;
     } catch (e) {
       debugPrint('Asset not available: $assetPath - $e');
