@@ -15,6 +15,16 @@ Aplikasi Flutter untuk sistem manajemen klinik dengan halaman autentikasi yang s
 - ✅ **Loading States** - Indikator loading saat proses autentikasi
 - ✅ **Navigation** - Navigasi antar halaman user dan admin
 
+### Dashboard Pasien
+
+- ✅ **Patient Dashboard** - Halaman dashboard utama dengan fitur lengkap
+- ✅ **Welcome Section** - Pesan selamat datang dengan statistik
+- ✅ **Quick Actions** - Aksi cepat (Buat Janji, Riwayat Medis, Resep Obat, Konsultasi)
+- ✅ **Janji Temu** - Daftar janji temu dengan status dan detail
+- ✅ **Riwayat Medis** - Riwayat konsultasi dengan diagnosis dan perawatan
+- ✅ **Statistik Kesehatan** - Data statistik konsultasi, resep, dan vaksinasi
+- ✅ **Bottom Navigation** - Navigasi antar fitur dashboard
+
 ### Desain & Tema
 
 - 🎨 **Color Scheme** - Tema hijau emerald yang profesional
@@ -34,10 +44,14 @@ lib/
 │   │   ├── register_screen.dart # Halaman register user
 │   │   ├── auth_routes.dart     # Routing autentikasi user
 │   │   └── README.md           # Dokumentasi auth user
-│   └── admin/                   # Halaman admin
-│       ├── admin_login_screen.dart # Halaman login admin
-│       ├── admin_routes.dart    # Routing admin
-│       └── README.md           # Dokumentasi admin
+│   ├── admin/                   # Halaman admin
+│   │   ├── admin_login_screen.dart # Halaman login admin
+│   │   ├── admin_routes.dart    # Routing admin
+│   │   └── README.md           # Dokumentasi admin
+│   └── patient/                 # Halaman pasien
+│       ├── patient_dashboard_screen.dart # Dashboard utama pasien
+│       ├── patient_routes.dart  # Routing pasien
+│       └── README.md           # Dokumentasi pasien
 ├── widgets/
 │   └── auth/
 │       └── auth_widgets.dart    # Widget components

@@ -67,8 +67,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _isLoading = false;
       });
 
-      // Navigate to login atau home
-      // Navigator.pushReplacementNamed(context, '/login');
+      // Navigate to patient dashboard
+      debugPrint(
+        'Attempting to navigate to patient dashboard from register...',
+      );
+      Navigator.pushReplacementNamed(context, '/patient/dashboard');
+      debugPrint('Navigation completed from register');
     }
   }
 
