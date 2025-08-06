@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 
 class AuthService {
   // PENTING: Ganti dengan URL yang sesuai
-  static const String baseUrl = 'http://192.168.18.233:8000/api';
+  static const String baseUrl = 'http://192.168.18.232:8000/api';
   
   // Tambahkan timeout untuk debugging
   static const Duration timeoutDuration = Duration(seconds: 10);
