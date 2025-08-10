@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../theme/auth_theme.dart';
 import '../../constants/assets.dart';
 import '../services/dashboard_service.dart';
@@ -23,6 +24,11 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen>
   int _selectedIndex = 0;
   bool _isLoading = true;
   String _userEmail = '';
+
+  // Notifications state
+  DateTime? _notificationsLastSeenAt;
+  bool _hasUnreadNotifications = false;
+  List<NotificationItem> _notificationsCache = [];
 
   // Data from API
   List<ReservasiData> _reservasiData = [];
@@ -52,6 +58,8 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen>
 
     // Load dashboard data
     _loadDashboardData();
+    // Load notifications state (badge)
+    _loadNotificationState();
   }
 
   // Load dashboard data from API
@@ -196,18 +204,19 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen>
           icon: const Icon(Icons.notifications_outlined),
           color: Colors.grey[600],
         ),
-        Positioned(
-          right: 8,
-          top: 8,
-          child: Container(
-            width: 8,
-            height: 8,
-            decoration: const BoxDecoration(
-              color: Colors.red,
-              shape: BoxShape.circle,
+        if (_hasUnreadNotifications)
+          Positioned(
+            right: 8,
+            top: 8,
+            child: Container(
+              width: 8,
+              height: 8,
+              decoration: const BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+              ),
             ),
           ),
-        ),
       ],
     );
   }
@@ -463,13 +472,13 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen>
         'title': 'Riwayat Medis',
         'icon': Icons.history,
         'color': Colors.green,
-        'onTap': () => _showMedicalHistory(),
+        'onTap': () => _showMedicalHistory(initialTabIndex: 0),
       },
       {
         'title': 'Resep Obat',
         'icon': Icons.medication,
         'color': Colors.orange,
-        'onTap': () => _showPrescriptions(),
+        'onTap': () => _showMedicalHistory(initialTabIndex: 1),
       },
       {
         'title': 'Konsultasi',
@@ -1028,11 +1037,328 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen>
   }
 
   // Action methods
-  void _showNotifications() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Fitur notifikasi akan segera hadir!'),
-        duration: Duration(seconds: 2),
+  Future<void> _showNotifications() async {
+    if (_userEmail.isEmpty) {
+      final email = await UserService.getUserEmail();
+      if (email != null) _userEmail = email;
+    }
+
+    final result = await DashboardService.getNotifications(_userEmail);
+    final notifications = result.notifications ?? [];
+    _notificationsCache = notifications;
+    _computeUnreadFrom(notifications);
+
+    bool showUnreadOnly = false;
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (context, scrollController) => StatefulBuilder(
+          builder: (context, setSheetState) {
+            List<NotificationItem> filtered = notifications.where((n) {
+              if (!showUnreadOnly) return true;
+              return _isNotificationUnread(n);
+            }).toList();
+
+            Widget listView = filtered.isEmpty
+                ? Center(
+                    child: _buildEmptyState(
+                      showUnreadOnly
+                          ? 'Tidak ada notifikasi baru'
+                          : 'Tidak ada notifikasi',
+                      'Anda akan menerima info terbaru di sini',
+                      Icons.notifications_off,
+                    ),
+                  )
+                : ListView.separated(
+                    controller: scrollController,
+                    padding: const EdgeInsets.all(16),
+                    itemCount: filtered.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final n = filtered[index];
+                      IconData icon;
+                      Color color;
+                      switch (n.type) {
+                        case 'reservation':
+                          icon = Icons.check_circle;
+                          color = Colors.green;
+                          break;
+                        case 'result':
+                          icon = Icons.description;
+                          color = Colors.blue;
+                          break;
+                        case 'reminder':
+                          icon = Icons.alarm;
+                          color = Colors.orange;
+                          break;
+                        default:
+                          icon = Icons.notifications;
+                          color = const Color(0xFF059669);
+                      }
+                      final time = _formatDateShort(n.createdAt);
+                      return _buildNotificationItem(
+                        icon: icon,
+                        color: color,
+                        title: n.title,
+                        subtitle: n.subtitle,
+                        time: time,
+                      );
+                    },
+                  );
+
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Column(
+                children: [
+                  const SizedBox(height: 12),
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.notifications,
+                          color: Color(0xFF059669),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text(
+                            'Notifikasi',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF059669),
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Muat ulang',
+                          onPressed: () async {
+                            final r = await DashboardService.getNotifications(
+                              _userEmail,
+                            );
+                            final fresh = r.notifications ?? [];
+                            setState(() {
+                              _notificationsCache = fresh;
+                            });
+                            setSheetState(() {});
+                            _computeUnreadFrom(fresh);
+                          },
+                          icon: const Icon(Icons.refresh),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Tutup'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: [
+                        ChoiceChip(
+                          label: const Text('Semua'),
+                          selected: !showUnreadOnly,
+                          onSelected: (_) =>
+                              setSheetState(() => showUnreadOnly = false),
+                        ),
+                        const SizedBox(width: 8),
+                        ChoiceChip(
+                          label: const Text('Belum Dibaca'),
+                          selected: showUnreadOnly,
+                          onSelected: (_) =>
+                              setSheetState(() => showUnreadOnly = true),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Divider(height: 1),
+                  Expanded(
+                    child: RefreshIndicator(
+                      color: const Color(0xFF059669),
+                      onRefresh: () async {
+                        final r = await DashboardService.getNotifications(
+                          _userEmail,
+                        );
+                        final fresh = r.notifications ?? [];
+                        setState(() {
+                          _notificationsCache = fresh;
+                        });
+                        setSheetState(() {});
+                        _computeUnreadFrom(fresh);
+                      },
+                      child: listView,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+
+    // Mark as seen when modal closed
+    await _markNotificationsAsSeen();
+  }
+
+  // Helpers for notifications state
+  String get _notifLastSeenKey =>
+      'notif_last_seen_${_userEmail.isEmpty ? 'guest' : _userEmail}';
+
+  Future<void> _loadNotificationState() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final ts = prefs.getString(_notifLastSeenKey);
+      setState(() {
+        _notificationsLastSeenAt = ts != null ? DateTime.tryParse(ts) : null;
+      });
+      if (_userEmail.isNotEmpty) {
+        final result = await DashboardService.getNotifications(_userEmail);
+        _notificationsCache = result.notifications ?? [];
+        _computeUnreadFrom(_notificationsCache);
+      }
+    } catch (_) {}
+  }
+
+  void _computeUnreadFrom(List<NotificationItem> list) {
+    final lastSeen = _notificationsLastSeenAt;
+    bool hasUnread = false;
+    if (lastSeen == null) {
+      hasUnread = list.isNotEmpty;
+    } else {
+      for (final n in list) {
+        if (n.createdAt.isAfter(lastSeen)) {
+          hasUnread = true;
+          break;
+        }
+      }
+    }
+    if (mounted) {
+      setState(() {
+        _hasUnreadNotifications = hasUnread;
+      });
+    }
+  }
+
+  bool _isNotificationUnread(NotificationItem n) {
+    final lastSeen = _notificationsLastSeenAt;
+    if (lastSeen == null) return true;
+    return n.createdAt.isAfter(lastSeen);
+  }
+
+  Future<void> _markNotificationsAsSeen() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final nowIso = DateTime.now().toIso8601String();
+      await prefs.setString(_notifLastSeenKey, nowIso);
+      if (mounted) {
+        setState(() {
+          _notificationsLastSeenAt = DateTime.parse(nowIso);
+          _hasUnreadNotifications = false;
+        });
+      }
+    } catch (_) {}
+  }
+
+  String _formatDateShort(DateTime dt) {
+    return '${dt.day}/${dt.month}/${dt.year}';
+  }
+
+  Widget _buildNotificationItem({
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String subtitle,
+    required String time,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: color, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        time,
+                        style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey[700],
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1322,8 +1648,11 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen>
 
   // Removed unused _buildFormField
 
-  void _showMedicalHistory() {
-    int activeTabIndex = 0; // 0: Riwayat Medis, 1: Resep Obat
+  void _showMedicalHistory({int initialTabIndex = 0}) {
+    int activeTabIndex = initialTabIndex.clamp(
+      0,
+      1,
+    ); // 0: Riwayat Medis, 1: Resep Obat
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1580,14 +1909,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen>
     );
   }
 
-  void _showPrescriptions() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Membuka resep obat...'),
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
+  // Removed unused _showPrescriptions (gunakan _showMedicalHistory(initialTabIndex: 1))
 
   void _showConsultation() {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -1599,21 +1921,71 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen>
   }
 
   void _showAllAppointments() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Membuka semua janji temu...'),
-        duration: Duration(seconds: 2),
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.8,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (context, scrollController) => Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.calendar_today, color: Color(0xFF059669)),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Semua Janji Temu',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF059669),
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: _reservasiData.isEmpty
+                    ? ListView(
+                        controller: scrollController,
+                        children: [
+                          _buildEmptyState(
+                            'Belum ada janji temu',
+                            'Buat janji temu pertama Anda sekarang',
+                            Icons.calendar_today,
+                          ),
+                        ],
+                      )
+                    : ListView.builder(
+                        controller: scrollController,
+                        itemCount: _reservasiData.length,
+                        itemBuilder: (context, index) =>
+                            _buildReservasiCard(_reservasiData[index]),
+                      ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
   void _showAllMedicalRecords() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Membuka semua riwayat medis...'),
-        duration: Duration(seconds: 2),
-      ),
-    );
+    _showMedicalHistory(initialTabIndex: 0);
   }
 
   void _logout() async {

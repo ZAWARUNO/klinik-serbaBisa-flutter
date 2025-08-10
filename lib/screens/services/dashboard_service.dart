@@ -319,6 +319,56 @@ class DashboardService {
       );
     }
   }
+
+  // Get notifications (derived from reservasi & hasil_reservasi)
+  static Future<DashboardResult> getNotifications(String email) async {
+    try {
+      print('🚀 Getting notifications for: $email');
+      print('📍 URL: $baseUrl/pasien/notifications/$email');
+
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/pasien/notifications/$email'),
+            headers: headers,
+          )
+          .timeout(timeoutDuration);
+
+      print('📡 Notifications Response Status: ${response.statusCode}');
+      print('📡 Notifications Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = jsonDecode(response.body);
+        if (responseData['success'] == true) {
+          final List<dynamic> list = responseData['data'] ?? [];
+          final List<NotificationItem> notifications = list
+              .map((json) => NotificationItem.fromJson(json))
+              .toList();
+          return DashboardResult(
+            success: true,
+            message: responseData['message'] ?? 'Notifikasi berhasil diambil',
+            notifications: notifications,
+          );
+        } else {
+          return DashboardResult(
+            success: false,
+            message: responseData['message'] ?? 'Gagal mengambil notifikasi',
+          );
+        }
+      } else {
+        return DashboardResult(
+          success: false,
+          message: 'Server error: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      print('💥 Notifications error: $e');
+      return DashboardResult(
+        success: false,
+        message: 'Koneksi gagal: ${e.toString()}',
+        error: e.toString(),
+      );
+    }
+  }
 }
 
 // Dashboard Result model
@@ -329,6 +379,7 @@ class DashboardResult {
   final List<JadwalData>? jadwalData;
   final List<HasilReservasiData>? hasilReservasiData;
   final DashboardStats? dashboardStats;
+  final List<NotificationItem>? notifications;
   final String? error;
 
   DashboardResult({
@@ -338,6 +389,7 @@ class DashboardResult {
     this.jadwalData,
     this.hasilReservasiData,
     this.dashboardStats,
+    this.notifications,
     this.error,
   });
 }
@@ -500,6 +552,30 @@ class DashboardStats {
       reservasiSudah: json['reservasi_sudah'] ?? 0,
       totalHasilReservasi: json['total_hasil_reservasi'] ?? 0,
       jadwalHariIni: json['jadwal_hari_ini'] ?? 0,
+    );
+  }
+}
+
+// Notification item model (unified from backend)
+class NotificationItem {
+  final String type; // reservation|result|reminder
+  final String title;
+  final String subtitle;
+  final DateTime createdAt;
+
+  NotificationItem({
+    required this.type,
+    required this.title,
+    required this.subtitle,
+    required this.createdAt,
+  });
+
+  factory NotificationItem.fromJson(Map<String, dynamic> json) {
+    return NotificationItem(
+      type: json['type'] ?? 'info',
+      title: json['title'] ?? '',
+      subtitle: json['subtitle'] ?? '',
+      createdAt: DateTime.parse(json['created_at']),
     );
   }
 }
