@@ -3,8 +3,6 @@ import 'package:flutter/services.dart';
 import 'screens/auth/auth_routes.dart';
 import 'screens/patient/patient_routes.dart';
 import 'theme/auth_theme.dart';
-import 'models/doctor_model.dart';
-import 'screens/services/api_service.dart';
 import 'widgets/doctors_section.dart';
 
 void main() {
@@ -99,6 +97,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+  final GlobalKey _servicesSectionKey = GlobalKey();
 
   @override
   void initState() {
@@ -152,7 +151,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   children: [
                     _buildHeroSection(),
                     _buildAboutSection(),
-                    _buildServicesSection(),
+                    _buildServicesSection(key: _servicesSectionKey),
                     _buildDoctorsSection(),
                     _buildFooter(),
                   ],
@@ -261,7 +260,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             decoration: BoxDecoration(
               color: const Color(
                 0xFF4ECDC4,
-              ).withOpacity(0.8), // Overlay untuk readability
+              ).withValues(alpha: 0.8), // Overlay untuk readability
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -291,10 +290,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   onPressed: () {
                     // Scroll ke section layanan
                     Scrollable.ensureVisible(
-                      context
-                          .findAncestorStateOfType<_HomePageState>()!
-                          .context,
-                      duration: const Duration(milliseconds: 500),
+                      _servicesSectionKey.currentContext!,
+                      duration: const Duration(milliseconds: 800),
+                      curve: Curves.easeInOut,
                     );
                   },
                   style: ElevatedButton.styleFrom(
@@ -376,8 +374,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 ),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Colors.cyan.withOpacity(
-                      0.2,
+                    color: Colors.cyan.withValues(
+                      alpha: 0.2,
                     ), // Overlay cyan dengan opacity 20%
                     borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(16),
@@ -437,7 +435,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildServicesSection() {
+  Widget _buildServicesSection({Key? key}) {
     final services = [
       {'name': 'Umum', 'icon': Icons.medical_services},
       {'name': 'Gigi', 'icon': Icons.medication},
@@ -452,6 +450,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     ];
 
     return Container(
+      key: key,
       margin: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -492,14 +491,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.cyan.shade300.withOpacity(0.7),
-            Colors.teal.shade300.withOpacity(0.7),
+            Colors.cyan.shade300.withValues(alpha: 0.7),
+            Colors.teal.shade300.withValues(alpha: 0.7),
           ],
         ),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -543,101 +542,205 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   Widget _buildFooter() {
     return Container(
       margin: const EdgeInsets.only(top: 32),
-      decoration: const BoxDecoration(
-        color: Colors.cyan,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF00BCD4), Color(0xFF0097A7)],
+        ),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.cyan.withValues(alpha: 0.3),
+            blurRadius: 20,
+            offset: const Offset(0, -5),
+          ),
+        ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
         child: Column(
           children: [
+            // Header section with logo and social icons
             Row(
               children: [
                 Expanded(
-                  child: Image.asset(
-                    'assets/images/logo.png',
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Center(
-                          child: Text(
+                  child: SizedBox(
+                    height: 60,
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: const Text(
                             'Klinik SerbaBisa',
                             style: TextStyle(
-                              color: Colors.cyan,
+                              color: Color(0xFF00BCD4),
                               fontWeight: FontWeight.bold,
-                              fontSize: 12,
+                              fontSize: 14,
                             ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
                 ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildSocialIcon(Icons.facebook, 'Facebook'),
+                      _buildSocialIcon(Icons.phone, 'Telepon'),
+                      _buildSocialIcon(Icons.email, 'Email'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 24),
+
+            // Description text with better typography
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+              ),
+              child: const Text(
+                'Klinik SerbaBisa hadir menyediakan berbagai layanan kesehatan berkualitas, lengkap, dan terstandarisasi mulai dari layanan umum, tumbuh kembang anak, hingga pengobatan psikologi.',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  height: 1.6,
+                  fontWeight: FontWeight.w400,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+
+            const SizedBox(height: 28),
+
+            // Call-to-action button with enhanced design
+            Container(
+              width: double.infinity,
+              height: 56,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.teal.withValues(alpha: 0.4),
+                    blurRadius: 15,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pushNamed(context, AuthRoutes.register);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: const Color(0xFF0097A7),
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(28),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    IconButton(
-                      onPressed: () {},
-                      icon: const Icon(Icons.facebook, color: Colors.white),
-                    ),
-                    IconButton(
-                      onPressed: () {},
-                      icon: const Icon(Icons.call, color: Colors.white),
-                    ),
-                    IconButton(
-                      onPressed: () {},
-                      icon: const Icon(Icons.email, color: Colors.white),
+                    const Icon(Icons.person_add, size: 20),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Pendaftaran Pasien',
+                      style: TextStyle(
+                        color: Color(0xFF0097A7),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
-            const SizedBox(height: 16),
-            const Text(
-              'Klinik SerbaBisa hadir menyediakan berbagai layanan kesehatan berkualitas, lengkap, dan terstandarisasi mulai dari layanan umum, tumbuh kembang anak, hingga pengobatan psikologi.',
-              style: TextStyle(color: Colors.white, fontSize: 14, height: 1.5),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pushNamed(context, AuthRoutes.register);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.teal,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
-                    child: const Text(
-                      'Pendaftaran Pasien',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+
+            const SizedBox(height: 28),
+
+            // Enhanced divider
+            Container(
+              height: 1,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.transparent,
+                    Colors.white.withValues(alpha: 0.3),
+                    Colors.transparent,
+                  ],
                 ),
-              ],
+              ),
             ),
-            const SizedBox(height: 24),
-            const Divider(color: Colors.white24),
-            const SizedBox(height: 16),
-            const Text(
-              'Copyright © 2025 Klinik SerbaBisa',
-              style: TextStyle(color: Colors.white70, fontSize: 12),
+
+            const SizedBox(height: 20),
+
+            // Copyright with better styling
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Text(
+                'Copyright © 2025 Klinik SerbaBisa',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSocialIcon(IconData icon, String tooltip) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 2),
+      child: IconButton(
+        onPressed: () {},
+        icon: Icon(icon, color: Colors.white, size: 20),
+        tooltip: tooltip,
+        style: IconButton.styleFrom(
+          padding: const EdgeInsets.all(12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       ),
     );
