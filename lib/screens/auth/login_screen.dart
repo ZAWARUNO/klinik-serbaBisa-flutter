@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'register_screen.dart';
+import '../services/auth_service.dart'; // Import auth service
+import '../services/user_service.dart'; // Import user service
 import '../../widgets/auth/placeholder_widgets.dart';
 import '../../constants/assets.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+  const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -36,18 +38,80 @@ class _LoginScreenState extends State<LoginScreen> {
         _isLoading = true;
       });
 
-      // Simulasi proses login
-      await Future.delayed(const Duration(seconds: 2));
+      try {
+        // Test connection first
+        bool isConnected = await AuthService.testConnection();
+        if (!isConnected) {
+          _showErrorDialog(
+            'Koneksi Gagal',
+            'Tidak dapat terhubung ke server. Pastikan:\n'
+                '• Server Laravel sudah berjalan (php artisan serve)\n'
+                '• URL di AuthService sudah benar\n'
+                '• Tidak ada firewall yang memblokir',
+          );
+          setState(() {
+            _isLoading = false;
+          });
+          return;
+        }
 
-      setState(() {
-        _isLoading = false;
-      });
+        // Attempt login
+        final result = await AuthService.login(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
 
-      // Navigate to patient dashboard
-      debugPrint('Attempting to navigate to patient dashboard...');
-      Navigator.pushReplacementNamed(context, '/patient/dashboard');
-      debugPrint('Navigation completed');
+        setState(() {
+          _isLoading = false;
+        });
+
+        if (result.success) {
+          // Save user data to local storage
+          if (result.user != null) {
+            await UserService.saveUserData(result.user!);
+            debugPrint('Login successful: ${result.user?.nama}');
+          }
+
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result.message),
+              backgroundColor: Colors.green,
+            ),
+          );
+
+          // Navigate to dashboard
+          Navigator.pushReplacementNamed(context, '/patient/dashboard');
+        } else {
+          _showErrorDialog('Login Gagal', result.message);
+        }
+      } catch (e) {
+        setState(() {
+          _isLoading = false;
+        });
+        _showErrorDialog('Error', 'Terjadi kesalahan: $e');
+      }
     }
+  }
+
+  void _showErrorDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override

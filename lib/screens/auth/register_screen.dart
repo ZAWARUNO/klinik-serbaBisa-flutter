@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'login_screen.dart';
+import '../services/auth_service.dart'; // Import auth service
+import '../services/user_service.dart'; // Import user service
 import '../../widgets/auth/placeholder_widgets.dart';
 
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({Key? key}) : super(key: key);
+  const RegisterScreen({super.key});
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
@@ -60,20 +62,85 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _isLoading = true;
       });
 
-      // Simulasi proses registrasi
-      await Future.delayed(const Duration(seconds: 2));
+      try {
+        // Test connection first
+        bool isConnected = await AuthService.testConnection();
+        if (!isConnected) {
+          _showErrorDialog(
+            'Koneksi Gagal',
+            'Tidak dapat terhubung ke server. Pastikan:\n'
+                '• Server Laravel sudah berjalan (php artisan serve)\n'
+                '• URL di AuthService sudah benar\n'
+                '• Tidak ada firewall yang memblokir',
+          );
+          setState(() {
+            _isLoading = false;
+          });
+          return;
+        }
 
-      setState(() {
-        _isLoading = false;
-      });
+        // Attempt registration
+        final result = await AuthService.register(
+          email: _emailController.text.trim(),
+          nama: _namaController.text.trim(),
+          umur: int.parse(_umurController.text.trim()),
+          kelamin: _selectedKelamin,
+          nomorHp: _nomorHpController.text.trim(),
+          alamat: _alamatController.text.trim(),
+          password: _passwordController.text,
+        );
 
-      // Navigate to patient dashboard
-      debugPrint(
-        'Attempting to navigate to patient dashboard from register...',
-      );
-      Navigator.pushReplacementNamed(context, '/patient/dashboard');
-      debugPrint('Navigation completed from register');
+        setState(() {
+          _isLoading = false;
+        });
+
+        if (result.success) {
+          // Save user data to local storage
+          if (result.user != null) {
+            await UserService.saveUserData(result.user!);
+            debugPrint('Registration successful: ${result.user?.nama}');
+          }
+
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result.message),
+              backgroundColor: Colors.green,
+            ),
+          );
+
+          // Navigate to dashboard
+          Navigator.pushReplacementNamed(context, '/patient/dashboard');
+        } else {
+          _showErrorDialog('Registrasi Gagal', result.message);
+        }
+      } catch (e) {
+        setState(() {
+          _isLoading = false;
+        });
+        _showErrorDialog('Error', 'Terjadi kesalahan: $e');
+      }
     }
+  }
+
+  void _showErrorDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -229,6 +296,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           if (value == null || value.isEmpty) {
                             return 'Nama harus diisi';
                           }
+                          if (value.length < 2) {
+                            return 'Nama minimal 2 karakter';
+                          }
                           return null;
                         },
                       ),
@@ -270,6 +340,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Nomor HP harus diisi';
+                          }
+                          // Bersihkan nomor HP
+                          String cleanNumber = value.replaceAll(
+                            RegExp(r'[^\d]'),
+                            '',
+                          );
+                          if (cleanNumber.length < 10 ||
+                              cleanNumber.length > 13) {
+                            return 'Nomor HP harus 10-13 digit';
+                          }
+                          // Validasi format nomor Indonesia
+                          if (!cleanNumber.startsWith('08') &&
+                              !cleanNumber.startsWith('628')) {
+                            return 'Format nomor HP tidak valid';
                           }
                           return null;
                         },
@@ -468,6 +552,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
           validator: (value) {
             if (value == null || value.isEmpty) {
               return 'Alamat harus diisi';
+            }
+            if (value.length < 10) {
+              return 'Alamat minimal 10 karakter';
             }
             return null;
           },
