@@ -4,28 +4,27 @@ import 'package:http/http.dart' as http;
 class AuthService {
   // PENTING: Ganti dengan URL yang sesuai
   static const String baseUrl = 'http://192.168.18.232:8000/api';
-  
+
   // Tambahkan timeout untuk debugging
   static const Duration timeoutDuration = Duration(seconds: 10);
 
   static Map<String, String> get headers => {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      };
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  };
 
   // Test connection dengan debugging yang lebih detail
   static Future<bool> testConnection() async {
     try {
       print('🔍 Testing connection to: $baseUrl/test');
-      
-      final response = await http.get(
-        Uri.parse('$baseUrl/test'),
-        headers: headers,
-      ).timeout(timeoutDuration);
+
+      final response = await http
+          .get(Uri.parse('$baseUrl/test'), headers: headers)
+          .timeout(timeoutDuration);
 
       print('📡 Response Status Code: ${response.statusCode}');
       print('📡 Response Body: ${response.body}');
-      
+
       if (response.statusCode == 200) {
         print('✅ Connection successful!');
         return true;
@@ -53,7 +52,7 @@ class AuthService {
     try {
       print('🚀 Starting registration process...');
       print('📍 URL: $baseUrl/auth/register');
-      
+
       final requestBody = {
         'email': email,
         'nama': nama,
@@ -63,14 +62,16 @@ class AuthService {
         'alamat': alamat,
         'password': password,
       };
-      
+
       print('📝 Request Body: ${jsonEncode(requestBody)}');
 
-      final response = await http.post(
-        Uri.parse('$baseUrl/auth/register'),
-        headers: headers,
-        body: jsonEncode(requestBody),
-      ).timeout(timeoutDuration);
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/auth/register'),
+            headers: headers,
+            body: jsonEncode(requestBody),
+          )
+          .timeout(timeoutDuration);
 
       print('📡 Registration Response Status: ${response.statusCode}');
       print('📡 Registration Response Body: ${response.body}');
@@ -86,7 +87,7 @@ class AuthService {
         );
       } else {
         String errorMessage = responseData['message'] ?? 'Registrasi gagal';
-        
+
         if (responseData['errors'] != null) {
           final errors = responseData['errors'] as Map<String, dynamic>;
           final firstError = errors.values.first;
@@ -96,21 +97,20 @@ class AuthService {
         }
 
         print('❌ Registration failed: $errorMessage');
-        return AuthResult(
-          success: false,
-          message: errorMessage,
-        );
+        return AuthResult(success: false, message: errorMessage);
       }
     } catch (e) {
       print('💥 Registration error: $e');
       print('🔍 Error type: ${e.runtimeType}');
-      
+
       String errorMessage = 'Koneksi gagal. ';
-      
+
       if (e.toString().contains('SocketException')) {
-        errorMessage += 'Tidak dapat terhubung ke server. Periksa URL dan pastikan server berjalan.';
+        errorMessage +=
+            'Tidak dapat terhubung ke server. Periksa URL dan pastikan server berjalan.';
       } else if (e.toString().contains('TimeoutException')) {
-        errorMessage += 'Koneksi timeout. Server mungkin lambat atau tidak merespons.';
+        errorMessage +=
+            'Koneksi timeout. Server mungkin lambat atau tidak merespons.';
       } else if (e.toString().contains('FormatException')) {
         errorMessage += 'Response server tidak valid.';
       } else {
@@ -133,19 +133,18 @@ class AuthService {
     try {
       print('🚀 Starting login process...');
       print('📍 URL: $baseUrl/auth/login');
-      
-      final requestBody = {
-        'email': email,
-        'password': password,
-      };
-      
+
+      final requestBody = {'email': email, 'password': password};
+
       print('📝 Request Body: ${jsonEncode(requestBody)}');
 
-      final response = await http.post(
-        Uri.parse('$baseUrl/auth/login'),
-        headers: headers,
-        body: jsonEncode(requestBody),
-      ).timeout(timeoutDuration);
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/auth/login'),
+            headers: headers,
+            body: jsonEncode(requestBody),
+          )
+          .timeout(timeoutDuration);
 
       print('📡 Login Response Status: ${response.statusCode}');
       print('📡 Login Response Body: ${response.body}');
@@ -169,13 +168,15 @@ class AuthService {
     } catch (e) {
       print('💥 Login error: $e');
       print('🔍 Error type: ${e.runtimeType}');
-      
+
       String errorMessage = 'Koneksi gagal. ';
-      
+
       if (e.toString().contains('SocketException')) {
-        errorMessage += 'Tidak dapat terhubung ke server. Periksa URL dan pastikan server berjalan.';
+        errorMessage +=
+            'Tidak dapat terhubung ke server. Periksa URL dan pastikan server berjalan.';
       } else if (e.toString().contains('TimeoutException')) {
-        errorMessage += 'Koneksi timeout. Server mungkin lambat atau tidak merespons.';
+        errorMessage +=
+            'Koneksi timeout. Server mungkin lambat atau tidak merespons.';
       } else if (e.toString().contains('FormatException')) {
         errorMessage += 'Response server tidak valid.';
       } else {
@@ -196,10 +197,9 @@ class AuthService {
       print('🚀 Getting user profile...');
       print('📍 URL: $baseUrl/auth/profile/$userId');
 
-      final response = await http.get(
-        Uri.parse('$baseUrl/auth/profile/$userId'),
-        headers: headers,
-      ).timeout(timeoutDuration);
+      final response = await http
+          .get(Uri.parse('$baseUrl/auth/profile/$userId'), headers: headers)
+          .timeout(timeoutDuration);
 
       print('📡 Profile Response Status: ${response.statusCode}');
       print('📡 Profile Response Body: ${response.body}');
@@ -230,6 +230,79 @@ class AuthService {
     }
   }
 
+  // Update profile dengan debugging
+  static Future<AuthResult> updateProfile({
+    required int userId,
+    required String nama,
+    required int umur,
+    required String
+    kelamin, // 'L' atau 'P' atau 'Laki-laki'/'Perempuan' tergantung backend
+    required String nomorHp,
+    required String alamat,
+  }) async {
+    try {
+      print('🚀 Updating profile...');
+      print('📍 URL: $baseUrl/auth/profile/$userId');
+
+      final requestBody = {
+        'nama': nama,
+        'umur': umur,
+        'kelamin': kelamin,
+        'nomor_hp': nomorHp,
+        'alamat': alamat,
+      };
+
+      print('📝 Update Body: ${jsonEncode(requestBody)}');
+
+      final response = await http
+          .put(
+            Uri.parse('$baseUrl/auth/profile/$userId'),
+            headers: headers,
+            body: jsonEncode(requestBody),
+          )
+          .timeout(timeoutDuration);
+
+      print('📡 Update Response Status: ${response.statusCode}');
+      print('📡 Update Response Body: ${response.body}');
+
+      final Map<String, dynamic> responseData = jsonDecode(response.body);
+
+      if ((response.statusCode == 200 || response.statusCode == 201) &&
+          responseData['success'] == true) {
+        return AuthResult(
+          success: true,
+          message: responseData['message'] ?? 'Profil berhasil diperbarui',
+          user: responseData['data'] != null
+              ? UserData.fromJson(responseData['data'])
+              : null,
+        );
+      }
+
+      String errorMessage =
+          responseData['message'] ?? 'Gagal memperbarui profil';
+      if (response.statusCode == 422 && responseData['errors'] != null) {
+        final errors = responseData['errors'] as Map<String, dynamic>;
+        final firstError = errors.values.first;
+        if (firstError is List && firstError.isNotEmpty) {
+          errorMessage = firstError.first;
+        }
+      }
+
+      return AuthResult(
+        success: false,
+        message: errorMessage,
+        error: response.body,
+      );
+    } catch (e) {
+      print('💥 Update profile error: $e');
+      return AuthResult(
+        success: false,
+        message: 'Koneksi gagal saat update profil: ${e.toString()}',
+        error: e.toString(),
+      );
+    }
+  }
+
   // Method untuk testing berbagai URL
   static Future<void> testMultipleUrls() async {
     final testUrls = [
@@ -240,15 +313,14 @@ class AuthService {
     ];
 
     print('🧪 Testing multiple URLs...');
-    
+
     for (String url in testUrls) {
       try {
         print('\n🔍 Testing: $url/test');
-        
-        final response = await http.get(
-          Uri.parse('$url/test'),
-          headers: headers,
-        ).timeout(const Duration(seconds: 5));
+
+        final response = await http
+            .get(Uri.parse('$url/test'), headers: headers)
+            .timeout(const Duration(seconds: 5));
 
         print('✅ $url - Status: ${response.statusCode}');
         if (response.statusCode == 200) {

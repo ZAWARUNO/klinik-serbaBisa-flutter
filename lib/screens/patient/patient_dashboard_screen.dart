@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../theme/auth_theme.dart';
 import '../../constants/assets.dart';
+import '../services/dashboard_service.dart';
+import '../services/auth_service.dart';
+import '../services/user_service.dart';
+import '../../widgets/appointment_dialog.dart';
 
 class PatientDashboardScreen extends StatefulWidget {
   const PatientDashboardScreen({super.key});
@@ -17,44 +21,15 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen>
   late Animation<Offset> _slideAnimation;
 
   int _selectedIndex = 0;
-  final bool _isLoading = false;
+  bool _isLoading = true;
+  String _userEmail = '';
 
-  // Sample data for dashboard
-  final List<Map<String, dynamic>> _appointments = [
-    {
-      'id': 'APT001',
-      'doctor': 'Dr. Tohir Arsyad Romadhon',
-      'specialty': 'Dokter Umum',
-      'date': '2025-01-15',
-      'time': '09:30',
-      'status': 'confirmed',
-      'type': 'Konsultasi Umum',
-    },
-    {
-      'id': 'APT002',
-      'doctor': 'Dr. Izzati Al Fahwas',
-      'specialty': 'Dokter Anak',
-      'date': '2025-01-18',
-      'time': '14:00',
-      'status': 'pending',
-      'type': 'Vaksinasi Anak',
-    },
-  ];
-
-  final List<Map<String, dynamic>> _medicalRecords = [
-    {
-      'date': '2024-12-20',
-      'diagnosis': 'Demam Berdarah',
-      'treatment': 'Obat penurun demam dan istirahat',
-      'doctor': 'Dr. Tohir Arsyad Romadhon',
-    },
-    {
-      'date': '2024-11-15',
-      'diagnosis': 'Flu dan Batuk',
-      'treatment': 'Antibiotik dan vitamin C',
-      'doctor': 'Dr. Tohir Arsyad Romadhon',
-    },
-  ];
+  // Data from API
+  List<ReservasiData> _reservasiData = [];
+  // List<JadwalData> _jadwalData = [];
+  List<HasilReservasiData> _hasilReservasiData = [];
+  DashboardStats? _dashboardStats;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -74,6 +49,63 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen>
           ),
         );
     _animationController.forward();
+
+    // Load dashboard data
+    _loadDashboardData();
+  }
+
+  // Load dashboard data from API
+  Future<void> _loadDashboardData() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      // Get current user email from SharedPreferences
+      final userEmail = await UserService.getUserEmail();
+
+      if (userEmail == null) {
+        setState(() {
+          _errorMessage =
+              'Tidak dapat menemukan data user. Silakan login ulang.';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      _userEmail = userEmail;
+      print('🔍 Loading dashboard data for user: $_userEmail');
+
+      // Load all data concurrently
+      final results = await Future.wait([
+        DashboardService.getReservasiData(_userEmail),
+        DashboardService.getHasilReservasi(_userEmail),
+        DashboardService.getDashboardStats(_userEmail),
+      ]);
+
+      if (mounted) {
+        setState(() {
+          if (results[0].success) {
+            _reservasiData = results[0].reservasiData ?? [];
+          }
+          if (results[1].success) {
+            _hasilReservasiData = results[1].hasilReservasiData ?? [];
+          }
+          if (results[2].success) {
+            _dashboardStats = results[2].dashboardStats;
+          }
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Gagal memuat data: ${e.toString()}';
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -197,9 +229,9 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen>
               'Selamat Datang',
               style: TextStyle(fontSize: 10, color: Colors.grey),
             ),
-            const Text(
-              'John Doe',
-              style: TextStyle(
+            Text(
+              _reservasiData.isNotEmpty ? _reservasiData.first.nama : 'Pasien',
+              style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
                 color: Colors.black87,
@@ -219,21 +251,79 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen>
   }
 
   Widget _buildBody(bool isMobile) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildWelcomeSection(),
-          const SizedBox(height: 24),
-          _buildQuickActions(isMobile),
-          const SizedBox(height: 24),
-          _buildAppointmentsSection(),
-          const SizedBox(height: 24),
-          _buildMedicalRecordsSection(),
-          const SizedBox(height: 24),
-          _buildStatisticsSection(),
-        ],
+    if (_isLoading) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF059669)),
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Memuat data dashboard...',
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_errorMessage != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
+            const SizedBox(height: 16),
+            Text(
+              'Gagal memuat data',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.red[700],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _errorMessage!,
+              style: const TextStyle(fontSize: 14, color: Colors.grey),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadDashboardData,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF059669),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Coba Lagi'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadDashboardData,
+      color: const Color(0xFF059669),
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildWelcomeSection(),
+            const SizedBox(height: 24),
+            _buildQuickActions(isMobile),
+            const SizedBox(height: 24),
+            _buildAppointmentsSection(),
+            const SizedBox(height: 24),
+            _buildMedicalRecordsSection(),
+            const SizedBox(height: 24),
+            _buildStatisticsSection(),
+          ],
+        ),
       ),
     );
   }
@@ -303,11 +393,23 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen>
           const SizedBox(height: 16),
           Row(
             children: [
-              _buildStatCard('3', 'Janji Temu', Icons.calendar_today),
+              _buildStatCard(
+                (_dashboardStats?.totalReservasi ?? 0).toString(),
+                'Janji Temu',
+                Icons.calendar_today,
+              ),
               const SizedBox(width: 16),
-              _buildStatCard('2', 'Riwayat Medis', Icons.medical_information),
+              _buildStatCard(
+                (_dashboardStats?.totalHasilReservasi ?? 0).toString(),
+                'Riwayat Medis',
+                Icons.medical_information,
+              ),
               const SizedBox(width: 16),
-              _buildStatCard('1', 'Resep Aktif', Icons.medication),
+              _buildStatCard(
+                (_dashboardStats?.jadwalHariIni ?? 0).toString(),
+                'Jadwal Hari Ini',
+                Icons.schedule,
+              ),
             ],
           ),
         ],
@@ -485,7 +587,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen>
           ],
         ),
         const SizedBox(height: 16),
-        if (_appointments.isEmpty)
+        if (_reservasiData.isEmpty)
           _buildEmptyState(
             'Belum ada janji temu',
             'Buat janji temu pertama Anda sekarang',
@@ -495,19 +597,19 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen>
           ListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: _appointments.length,
+            itemCount: _reservasiData.length,
             itemBuilder: (context, index) {
-              return _buildAppointmentCard(_appointments[index]);
+              return _buildReservasiCard(_reservasiData[index]);
             },
           ),
       ],
     );
   }
 
-  Widget _buildAppointmentCard(Map<String, dynamic> appointment) {
-    final status = appointment['status'];
-    final statusColor = status == 'confirmed' ? Colors.green : Colors.orange;
-    final statusText = status == 'confirmed' ? 'Dikonfirmasi' : 'Menunggu';
+  Widget _buildReservasiCard(ReservasiData reservasi) {
+    final status = reservasi.status;
+    final statusColor = status == 'sudah' ? Colors.green : Colors.orange;
+    final statusText = status == 'sudah' ? 'Selesai' : 'Menunggu';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -544,7 +646,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    appointment['doctor'],
+                    reservasi.namaDokter ?? 'Dokter Umum',
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
@@ -553,7 +655,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen>
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    appointment['specialty'],
+                    reservasi.poli ?? 'Poli Umum',
                     style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
                   const SizedBox(height: 8),
@@ -566,7 +668,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen>
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        '${appointment['date']} • ${appointment['time']}',
+                        '${reservasi.hari ?? 'N/A'} • ${reservasi.waktu ?? 'N/A'}',
                         style: TextStyle(fontSize: 11, color: Colors.grey[500]),
                       ),
                     ],
@@ -623,7 +725,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen>
           ],
         ),
         const SizedBox(height: 16),
-        if (_medicalRecords.isEmpty)
+        if (_hasilReservasiData.isEmpty)
           _buildEmptyState(
             'Belum ada riwayat medis',
             'Riwayat medis akan muncul setelah konsultasi',
@@ -633,16 +735,16 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen>
           ListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: _medicalRecords.length,
+            itemCount: _hasilReservasiData.length,
             itemBuilder: (context, index) {
-              return _buildMedicalRecordCard(_medicalRecords[index]);
+              return _buildHasilReservasiCard(_hasilReservasiData[index]);
             },
           ),
       ],
     );
   }
 
-  Widget _buildMedicalRecordCard(Map<String, dynamic> record) {
+  Widget _buildHasilReservasiCard(HasilReservasiData hasil) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -681,7 +783,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        record['diagnosis'],
+                        hasil.diagnosis,
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
@@ -689,14 +791,14 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen>
                         ),
                       ),
                       Text(
-                        record['doctor'],
+                        'Hasil Konsultasi',
                         style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       ),
                     ],
                   ),
                 ),
                 Text(
-                  record['date'],
+                  '${hasil.createdAt.day}/${hasil.createdAt.month}/${hasil.createdAt.year}',
                   style: TextStyle(fontSize: 11, color: Colors.grey[500]),
                 ),
               ],
@@ -712,7 +814,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Perawatan:',
+                    'Obat:',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -721,7 +823,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen>
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    record['treatment'],
+                    hasil.obat,
                     style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                   ),
                 ],
@@ -760,7 +862,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen>
             children: [
               Expanded(
                 child: _buildStatisticItem(
-                  '12',
+                  '${_dashboardStats?.totalReservasi ?? 0}',
                   'Konsultasi',
                   Icons.medical_services,
                   Colors.blue,
@@ -769,8 +871,8 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen>
               const SizedBox(width: 16),
               Expanded(
                 child: _buildStatisticItem(
-                  '8',
-                  'Resep',
+                  '${_dashboardStats?.totalHasilReservasi ?? 0}',
+                  'Hasil',
                   Icons.medication,
                   Colors.green,
                 ),
@@ -935,7 +1037,10 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen>
     );
   }
 
-  void _showProfileMenu() {
+  void _showProfileMenu() async {
+    // Get current user data
+    final userData = await UserService.getUserData();
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1017,30 +1122,36 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen>
                           ),
                         ),
                         const SizedBox(height: 16),
-                        const Text(
-                          'John Doe',
-                          style: TextStyle(
+                        Text(
+                          userData?.nama ?? 'User',
+                          style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
                             color: Color(0xFF374151),
                           ),
                         ),
                         const SizedBox(height: 8),
-                        const Text(
-                          'john.doe@email.com',
-                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                        Text(
+                          userData?.email ?? 'user@email.com',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey,
+                          ),
                         ),
                         const SizedBox(height: 20),
-                        _buildProfileInfoRow('No. RM', 'RM-2025-001'),
+                        _buildProfileInfoRow(
+                          'Umur',
+                          '${userData?.umur ?? 0} tahun',
+                        ),
+                        _buildProfileInfoRow(
+                          'Jenis Kelamin',
+                          userData?.kelamin ?? '-',
+                        ),
                         _buildProfileInfoRow(
                           'No. Telepon',
-                          '+62 812-3456-7890',
+                          userData?.nomorHp ?? '-',
                         ),
-                        _buildProfileInfoRow(
-                          'Alamat',
-                          'Jl. Contoh No. 123, Jakarta',
-                        ),
-                        _buildProfileInfoRow('Golongan Darah', 'O+'),
+                        _buildProfileInfoRow('Alamat', userData?.alamat ?? '-'),
                       ],
                     ),
                   ),
@@ -1053,13 +1164,9 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen>
                         icon: Icons.edit,
                         title: 'Edit Profil',
                         subtitle: 'Ubah informasi pribadi',
-                        onTap: () {
+                        onTap: () async {
                           Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Membuka edit profil...'),
-                            ),
-                          );
+                          await _showEditProfile();
                         },
                       ),
                       const SizedBox(height: 12),
@@ -1210,271 +1317,106 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen>
   }
 
   void _showAppointmentDialog() {
+    AppointmentDialog.show(context);
+  }
+
+  // Removed unused _buildFormField
+
+  void _showMedicalHistory() {
+    int activeTabIndex = 0; // 0: Riwayat Medis, 1: Resep Obat
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.8,
-        minChildSize: 0.6,
-        maxChildSize: 0.95,
-        expand: false,
-        builder: (context, scrollController) => Container(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Row(
-                children: [
-                  const Icon(Icons.calendar_today, color: Color(0xFF059669)),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Buat Janji Temu',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => DraggableScrollableSheet(
+          initialChildSize: 0.7,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (context, scrollController) => Container(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.medical_information,
                       color: Color(0xFF059669),
                     ),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Riwayat Medis',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF059669),
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
 
-              // Form
-              Expanded(
-                child: SingleChildScrollView(
-                  controller: scrollController,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                // Tabs (hapus Hasil Lab)
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
                     children: [
-                      _buildFormField(
-                        'Pilih Dokter',
-                        'Dr. Tohir Arsyad Romadhon',
-                        Icons.person,
+                      Expanded(
+                        child: _buildTabButton(
+                          'Riwayat Medis',
+                          activeTabIndex == 0,
+                          () => setModalState(() => activeTabIndex = 0),
+                        ),
                       ),
-                      const SizedBox(height: 16),
-                      _buildFormField(
-                        'Spesialisasi',
-                        'Dokter Umum',
-                        Icons.medical_services,
-                      ),
-                      const SizedBox(height: 16),
-                      _buildFormField(
-                        'Tanggal',
-                        '15 Januari 2025',
-                        Icons.calendar_today,
-                      ),
-                      const SizedBox(height: 16),
-                      _buildFormField('Waktu', '09:30', Icons.access_time),
-                      const SizedBox(height: 16),
-                      _buildFormField(
-                        'Keluhan',
-                        'Masukkan keluhan Anda',
-                        Icons.note,
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Action buttons
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: () => Navigator.pop(context),
-                              style: OutlinedButton.styleFrom(
-                                side: const BorderSide(
-                                  color: Color(0xFF059669),
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: const Text(
-                                'Batal',
-                                style: TextStyle(
-                                  color: Color(0xFF059669),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: () {
-                                Navigator.pop(context);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Janji temu berhasil dibuat!',
-                                    ),
-                                    backgroundColor: Color(0xFF059669),
-                                  ),
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF059669),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: const Text(
-                                'Buat Janji',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
+                      Expanded(
+                        child: _buildTabButton(
+                          'Resep Obat',
+                          activeTabIndex == 1,
+                          () => setModalState(() => activeTabIndex = 1),
+                        ),
                       ),
                     ],
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 20),
+
+                // Content berdasarkan tab
+                Expanded(
+                  child: activeTabIndex == 0
+                      ? ListView.builder(
+                          controller: scrollController,
+                          itemCount: _hasilReservasiData.length,
+                          itemBuilder: (context, index) {
+                            final hasil = _hasilReservasiData[index];
+                            return _buildHasilReservasiCard(hasil);
+                          },
+                        )
+                      : _buildPrescriptionsList(scrollController),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildFormField(String label, String value, IconData icon) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF374151),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: Colors.grey[50],
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[300]!),
-          ),
-          child: Row(
-            children: [
-              Icon(icon, color: const Color(0xFF059669), size: 20),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Color(0xFF374151),
-                  ),
-                ),
-              ),
-              const Icon(Icons.arrow_drop_down, color: Colors.grey),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _showMedicalHistory() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.7,
-        minChildSize: 0.5,
-        maxChildSize: 0.95,
-        expand: false,
-        builder: (context, scrollController) => Container(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Row(
-                children: [
-                  const Icon(
-                    Icons.medical_information,
-                    color: Color(0xFF059669),
-                  ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Riwayat Medis',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF059669),
-                    ),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              // Tabs
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(child: _buildTabButton('Riwayat Medis', true)),
-                    Expanded(child: _buildTabButton('Resep Obat', false)),
-                    Expanded(child: _buildTabButton('Hasil Lab', false)),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Content
-              Expanded(
-                child: ListView.builder(
-                  controller: scrollController,
-                  itemCount: _medicalRecords.length,
-                  itemBuilder: (context, index) {
-                    final record = _medicalRecords[index];
-                    return _buildMedicalRecordCard(record);
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTabButton(String title, bool isActive) {
+  Widget _buildTabButton(String title, bool isActive, VoidCallback onTap) {
     return GestureDetector(
-      onTap: () {
-        // TODO: Implement tab switching
-      },
+      onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
@@ -1489,6 +1431,150 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen>
             fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
             fontSize: 14,
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPrescriptionsList(ScrollController scrollController) {
+    if (_hasilReservasiData.isEmpty) {
+      return ListView(
+        controller: scrollController,
+        children: [
+          _buildEmptyState(
+            'Belum ada resep obat',
+            'Resep obat akan muncul setelah konsultasi',
+            Icons.medication,
+          ),
+        ],
+      );
+    }
+
+    return ListView.separated(
+      controller: scrollController,
+      itemCount: _hasilReservasiData.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final hasil = _hasilReservasiData[index];
+        return _buildPrescriptionCard(hasil);
+      },
+    );
+  }
+
+  Widget _buildPrescriptionCard(HasilReservasiData hasil) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.medication,
+                    color: Colors.orange,
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Resep Obat',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+                Text(
+                  '${hasil.createdAt.day}/${hasil.createdAt.month}/${hasil.createdAt.year}',
+                  style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (hasil.diagnosis.isNotEmpty) ...[
+              Text(
+                'Diagnosis',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[700],
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                hasil.diagnosis,
+                style: TextStyle(fontSize: 13, color: Colors.grey[800]),
+              ),
+              const SizedBox(height: 12),
+            ],
+            Text(
+              'Obat',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[700],
+              ),
+            ),
+            const SizedBox(height: 6),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey[200]!),
+              ),
+              child: Text(
+                hasil.obat,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey[800],
+                  height: 1.4,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (hasil.edukasiSaran.isNotEmpty) ...[
+              Text(
+                'Edukasi & Saran',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[700],
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                hasil.edukasiSaran,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey[800],
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );
@@ -1530,7 +1616,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen>
     );
   }
 
-  void _logout() {
+  void _logout() async {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -1542,14 +1628,433 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen>
             child: const Text('Batal'),
           ),
           TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.pushReplacementNamed(context, '/');
+            onPressed: () async {
+              Navigator.pop(context); // Close dialog
+
+              // Clear user data
+              await UserService.clearUserData();
+
+              // Show success message
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Logout berhasil'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+
+              // Navigate to login screen
+              Navigator.pushReplacementNamed(context, '/auth/login');
             },
             child: const Text('Keluar'),
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _showEditProfile() async {
+    final userData = await UserService.getUserData();
+    if (userData == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Data pengguna tidak ditemukan')),
+      );
+      return;
+    }
+
+    final TextEditingController namaCtrl = TextEditingController(
+      text: userData.nama,
+    );
+    final TextEditingController umurCtrl = TextEditingController(
+      text: userData.umur.toString(),
+    );
+    final TextEditingController nomorHpCtrl = TextEditingController(
+      text: userData.nomorHp,
+    );
+    final TextEditingController alamatCtrl = TextEditingController(
+      text: userData.alamat,
+    );
+    String kelaminValue = _normalizeKelaminToShort(
+      userData.kelamin,
+    ); // 'L' / 'P'
+
+    final formKey = GlobalKey<FormState>();
+    bool isSubmitting = false;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: DraggableScrollableSheet(
+            initialChildSize: 0.8,
+            minChildSize: 0.5,
+            maxChildSize: 0.95,
+            expand: false,
+            builder: (context, scrollController) => SingleChildScrollView(
+              controller: scrollController,
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.edit, color: Color(0xFF059669)),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Text(
+                              'Edit Profil',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF059669),
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () => Navigator.pop(context),
+                            icon: const Icon(Icons.close),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      _buildInput(
+                        'Nama Lengkap',
+                        namaCtrl,
+                        Icons.person,
+                        validator: (v) => (v == null || v.trim().isEmpty)
+                            ? 'Nama wajib diisi'
+                            : null,
+                      ),
+                      const SizedBox(height: 12),
+                      _buildNumberInput(
+                        'Umur',
+                        umurCtrl,
+                        Icons.cake,
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty)
+                            return 'Umur wajib diisi';
+                          final n = int.tryParse(v);
+                          if (n == null || n <= 0) return 'Umur tidak valid';
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      _buildKelaminPicker(
+                        label: 'Jenis Kelamin',
+                        value: kelaminValue,
+                        onChanged: (val) =>
+                            setSheetState(() => kelaminValue = val ?? 'L'),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildInput(
+                        'No. Telepon',
+                        nomorHpCtrl,
+                        Icons.phone,
+                        keyboardType: TextInputType.phone,
+                        validator: (v) => (v == null || v.trim().isEmpty)
+                            ? 'No. Telepon wajib diisi'
+                            : null,
+                      ),
+                      const SizedBox(height: 12),
+                      _buildMultilineInput(
+                        'Alamat',
+                        alamatCtrl,
+                        Icons.location_on,
+                        validator: (v) => (v == null || v.trim().isEmpty)
+                            ? 'Alamat wajib diisi'
+                            : null,
+                      ),
+                      const SizedBox(height: 20),
+
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.pop(context),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(
+                                  color: Color(0xFF059669),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text(
+                                'Batal',
+                                style: TextStyle(
+                                  color: Color(0xFF059669),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: isSubmitting
+                                  ? null
+                                  : () async {
+                                      if (!(formKey.currentState?.validate() ??
+                                          false))
+                                        return;
+                                      setSheetState(() => isSubmitting = true);
+                                      final update =
+                                          await AuthService.updateProfile(
+                                            userId: userData.id,
+                                            nama: namaCtrl.text.trim(),
+                                            umur: int.parse(
+                                              umurCtrl.text.trim(),
+                                            ),
+                                            kelamin:
+                                                kelaminValue, // backend terima 'L'/'P' atau mapping sendiri
+                                            nomorHp: nomorHpCtrl.text.trim(),
+                                            alamat: alamatCtrl.text.trim(),
+                                          );
+                                      setSheetState(() => isSubmitting = false);
+                                      if (update.success) {
+                                        // Perbarui data lokal
+                                        final updated =
+                                            update.user ??
+                                            UserData(
+                                              id: userData.id,
+                                              email: userData.email,
+                                              nama: namaCtrl.text.trim(),
+                                              umur: int.parse(
+                                                umurCtrl.text.trim(),
+                                              ),
+                                              kelamin: kelaminValue,
+                                              nomorHp: nomorHpCtrl.text.trim(),
+                                              alamat: alamatCtrl.text.trim(),
+                                            );
+                                        await UserService.saveUserData(updated);
+                                        if (mounted) {
+                                          Navigator.pop(context);
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(update.message),
+                                              backgroundColor: Colors.green,
+                                            ),
+                                          );
+                                        }
+                                        // Refresh dashboard ringan
+                                        if (mounted) _loadDashboardData();
+                                      } else {
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(update.message),
+                                              backgroundColor: Colors.red,
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF059669),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: isSubmitting
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              Colors.white,
+                                            ),
+                                      ),
+                                    )
+                                  : const Text(
+                                      'Simpan Perubahan',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _normalizeKelaminToShort(String value) {
+    final v = value.toLowerCase();
+    if (v.startsWith('l')) return 'L';
+    if (v.startsWith('p')) return 'P';
+    // fallback
+    return (value == 'L' || value == 'P') ? value : 'L';
+  }
+
+  Widget _buildInput(
+    String label,
+    TextEditingController controller,
+    IconData icon, {
+    String? Function(String?)? validator,
+    TextInputType? keyboardType,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+        const SizedBox(height: 6),
+        TextFormField(
+          controller: controller,
+          validator: validator,
+          keyboardType: keyboardType ?? TextInputType.text,
+          decoration: InputDecoration(
+            prefixIcon: Icon(icon, color: const Color(0xFF059669)),
+            filled: true,
+            fillColor: Colors.grey[50],
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF059669)),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 12,
+              horizontal: 12,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNumberInput(
+    String label,
+    TextEditingController controller,
+    IconData icon, {
+    String? Function(String?)? validator,
+  }) {
+    return _buildInput(
+      label,
+      controller,
+      icon,
+      validator: validator,
+      keyboardType: TextInputType.number,
+    );
+  }
+
+  Widget _buildMultilineInput(
+    String label,
+    TextEditingController controller,
+    IconData icon, {
+    String? Function(String?)? validator,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+        const SizedBox(height: 6),
+        TextFormField(
+          controller: controller,
+          validator: validator,
+          maxLines: 3,
+          decoration: InputDecoration(
+            prefixIcon: Icon(icon, color: const Color(0xFF059669)),
+            filled: true,
+            fillColor: Colors.grey[50],
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF059669)),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 12,
+              horizontal: 12,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildKelaminPicker({
+    required String label,
+    required String value, // 'L'/'P'
+    required ValueChanged<String?> onChanged,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+        const SizedBox(height: 6),
+        DropdownButtonFormField<String>(
+          value: value,
+          onChanged: onChanged,
+          decoration: InputDecoration(
+            prefixIcon: const Icon(Icons.wc, color: Color(0xFF059669)),
+            filled: true,
+            fillColor: Colors.grey[50],
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF059669)),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 12,
+              horizontal: 12,
+            ),
+          ),
+          items: const [
+            DropdownMenuItem(value: 'L', child: Text('Laki-laki')),
+            DropdownMenuItem(value: 'P', child: Text('Perempuan')),
+          ],
+        ),
+      ],
     );
   }
 }

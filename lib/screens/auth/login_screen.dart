@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'register_screen.dart';
 import '../services/auth_service.dart'; // Import auth service
+import '../services/user_service.dart'; // Import user service
 import '../../widgets/auth/placeholder_widgets.dart';
 import '../../constants/assets.dart';
 
@@ -41,11 +42,13 @@ class _LoginScreenState extends State<LoginScreen> {
         // Test connection first
         bool isConnected = await AuthService.testConnection();
         if (!isConnected) {
-          _showErrorDialog('Koneksi Gagal', 
+          _showErrorDialog(
+            'Koneksi Gagal',
             'Tidak dapat terhubung ke server. Pastikan:\n'
-            '• Server Laravel sudah berjalan (php artisan serve)\n'
-            '• URL di AuthService sudah benar\n'
-            '• Tidak ada firewall yang memblokir');
+                '• Server Laravel sudah berjalan (php artisan serve)\n'
+                '• URL di AuthService sudah benar\n'
+                '• Tidak ada firewall yang memblokir',
+          );
           setState(() {
             _isLoading = false;
           });
@@ -63,9 +66,12 @@ class _LoginScreenState extends State<LoginScreen> {
         });
 
         if (result.success) {
-          // Save user data to local storage or state management if needed
-          debugPrint('Login successful: ${result.user?.nama}');
-          
+          // Save user data to local storage
+          if (result.user != null) {
+            await UserService.saveUserData(result.user!);
+            debugPrint('Login successful: ${result.user?.nama}');
+          }
+
           // Show success message
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

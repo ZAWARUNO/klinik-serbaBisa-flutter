@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'login_screen.dart';
 import '../services/auth_service.dart'; // Import auth service
+import '../services/user_service.dart'; // Import user service
 import '../../widgets/auth/placeholder_widgets.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -65,11 +66,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
         // Test connection first
         bool isConnected = await AuthService.testConnection();
         if (!isConnected) {
-          _showErrorDialog('Koneksi Gagal', 
+          _showErrorDialog(
+            'Koneksi Gagal',
             'Tidak dapat terhubung ke server. Pastikan:\n'
-            '• Server Laravel sudah berjalan (php artisan serve)\n'
-            '• URL di AuthService sudah benar\n'
-            '• Tidak ada firewall yang memblokir');
+                '• Server Laravel sudah berjalan (php artisan serve)\n'
+                '• URL di AuthService sudah benar\n'
+                '• Tidak ada firewall yang memblokir',
+          );
           setState(() {
             _isLoading = false;
           });
@@ -92,9 +95,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
         });
 
         if (result.success) {
-          // Save user data to local storage or state management if needed
-          debugPrint('Registration successful: ${result.user?.nama}');
-          
+          // Save user data to local storage
+          if (result.user != null) {
+            await UserService.saveUserData(result.user!);
+            debugPrint('Registration successful: ${result.user?.nama}');
+          }
+
           // Show success message
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -336,12 +342,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             return 'Nomor HP harus diisi';
                           }
                           // Bersihkan nomor HP
-                          String cleanNumber = value.replaceAll(RegExp(r'[^\d]'), '');
-                          if (cleanNumber.length < 10 || cleanNumber.length > 13) {
+                          String cleanNumber = value.replaceAll(
+                            RegExp(r'[^\d]'),
+                            '',
+                          );
+                          if (cleanNumber.length < 10 ||
+                              cleanNumber.length > 13) {
                             return 'Nomor HP harus 10-13 digit';
                           }
                           // Validasi format nomor Indonesia
-                          if (!cleanNumber.startsWith('08') && !cleanNumber.startsWith('628')) {
+                          if (!cleanNumber.startsWith('08') &&
+                              !cleanNumber.startsWith('628')) {
                             return 'Format nomor HP tidak valid';
                           }
                           return null;
